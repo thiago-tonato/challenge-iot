@@ -1,15 +1,16 @@
-# Simulador de Rastreamento de Moto
+# Simulador de Rastreamento de Motos
 
-Este projeto implementa uma simulação simples de rastreamento de uma moto em um ambiente 2D usando OpenCV e NumPy.
+Este projeto implementa uma simulação simples de rastreamento de múltiplas motos em um ambiente 2D usando OpenCV e NumPy.
 
 ## Descrição
 
-O simulador cria uma representação visual de uma moto (representada por um círculo vermelho) que se move em um "pátio" virtual. A moto se move com velocidade constante e reflete nas bordas do ambiente, simulando um movimento de ricochete.
+O simulador cria uma representação visual de várias motos (cada uma representada por um círculo colorido) que se movem em um "pátio" virtual. As motos se movem com velocidades constantes e refletem nas bordas do ambiente, simulando um movimento de ricochete. O pátio é dividido em um grid 5x5, e o quadrante de cada moto é exibido em tempo real.
 
 ## Características
 
-- Visualização em tempo real do movimento da moto
-- Exibição das coordenadas atuais da moto
+- Visualização em tempo real do movimento de múltiplas motos
+- Cada moto possui uma cor diferente
+- Exibição do quadrante (5x5) atual de cada moto (ex: A1, C4)
 - Movimento automático com reflexão nas bordas
 - Interface gráfica usando OpenCV
 
@@ -43,14 +44,18 @@ python script.py
 ## Parâmetros Configuráveis
 
 - `WIDTH, HEIGHT`: Dimensões da janela de visualização (800x600 pixels)
-- `x, y`: Posição inicial da moto (100, 100)
-- `vx, vy`: Velocidade da moto (3, 2 pixels por frame)
+- `GRID_ROWS, GRID_COLS`: Número de linhas e colunas do grid (5x5)
+- `NUM_MOTOS`: Número de motos simuladas (padrão: 4)
+- `cores`: Lista de cores das motos
+- `xs, ys`: Posições iniciais das motos
+- `vxs, vys`: Velocidades iniciais das motos
 
 ## Estrutura do Código
 
 O código principal (`script.py`) contém:
 
 - Inicialização do ambiente de visualização
+- Parâmetros de múltiplas motos
 - Loop principal de simulação
 - Lógica de movimento e reflexão
-- Renderização gráfica
+- Renderização gráfica das motos e exibição dos quadrantes
