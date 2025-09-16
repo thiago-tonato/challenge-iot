@@ -20,7 +20,7 @@ QUAD_HEIGHT = HEIGHT // GRID_ROWS
 NUM_MOTOS = 4
 
 # ---------------- SIMULAÇÃO DE DADOS ----------------
-# Em vez de Oracle, vamos usar uma lista em memória para demonstração
+# Em vez de Oracle,  uma lista em memória para demonstração
 detections_data = []
 db_lock = threading.Lock()
 
@@ -154,7 +154,7 @@ if __name__ == "__main__":
     
     run_simulation()
     
-    # Depois de fechar a janela, exibir dashboard:
+    # Após fechar a janela, exibir dashboard:
     plot_dashboard()
     
     print("\n=== ESTATÍSTICAS FINAIS ===")
