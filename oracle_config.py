@@ -1,13 +1,16 @@
 # Configurações do Oracle Database
 # Altere estas configurações conforme seu ambiente Oracle
+# Suporta variáveis de ambiente para deploy em Azure
 
-# Configurações de conexão
+import os
+
+# Configurações de conexão (usa variáveis de ambiente se disponíveis)
 ORACLE_CONFIG = {
-    'user': 'rm99404',
-    'password': '220205',
-    'host': 'oracle.fiap.com.br',
-    'port': 1521,
-    'service_name': 'ORCL'
+    'user': os.environ.get('ORACLE_USER', 'rm99404'),
+    'password': os.environ.get('ORACLE_PASSWORD', '220205'),
+    'host': os.environ.get('ORACLE_HOST', 'oracle.fiap.com.br'),
+    'port': int(os.environ.get('ORACLE_PORT', 1521)),
+    'service_name': os.environ.get('ORACLE_SERVICE', 'ORCL')
 }
 
 # String de conexão DSN (Data Source Name)

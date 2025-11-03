@@ -22,19 +22,14 @@ Este projeto implementa uma simulação avançada de rastreamento de motos em um
 
 ### 📊 **Análise e Visualização**
 - **Dashboard Plotly** interativo
-- **API Flask** para consultas HTTP
+- **API Flask REST** completa (8 endpoints)
 - **Estatísticas em tempo real**
-- **Análise de padrões** de movimento
+- **Sistema de status** baseado em quadrantes
+- **Alertas em tempo real**
 
-## 🛠️ Tecnologias Utilizadas
+## 🛠️ Tecnologias
 
-- **Python 3.x** - Linguagem principal
-- **OpenCV** - Visualização e processamento de imagem
-- **Oracle Database** - Armazenamento de dados
-- **NumPy** - Computação numérica
-- **Pandas** - Manipulação de dados
-- **Plotly** - Visualizações interativas
-- **Flask** - API web
+- Python 3.11, OpenCV, Oracle Database, Flask, Plotly, Pandas, NumPy
 
 ## 📦 Instalação
 
@@ -60,16 +55,15 @@ ORACLE_CONFIG = {
 }
 ```
 
-### 3. **Estrutura do Projeto**
+### 3. **Estrutura**
+
 ```
 challenge-iot/
-├── script.py                    # 🎮 Script principal
-├── oracle_config.py            # ⚙️ Configurações Oracle
-├── test_oracle_connection.py   # 🔍 Teste de conexão
-├── test_without_oracle.py      # 🧪 Demonstração sem Oracle
-├── README.md                   # 📖 Documentação principal
-├── README_ORACLE.md            # 🗄️ Guia do Oracle
-└── .gitignore                  # 🚫 Arquivos ignorados
+├── script.py              # Script principal
+├── oracle_config.py       # Configurações Oracle
+├── requirements.txt       # Dependências
+├── Dockerfile            # Container para Azure
+└── DEPLOY.md             # Guia de deploy
 ```
 
 ## 🚀 Como Executar
@@ -94,121 +88,28 @@ python test_without_oracle.py
 
 ## 🎮 Controles
 
-| Ação | Tecla |
-|------|-------|
-| **Sair da simulação** | `ESC` |
-| **Pausar/Continuar** | `SPACE` |
-| **Reset posições** | `R` |
+- `ESC` - Sair da simulação
 
-## ⚙️ Configurações Avançadas
+## 📊 Banco de Dados
 
-### **Parâmetros de Simulação**
-```python
-# Dimensões da janela
-WIDTH, HEIGHT = 800, 600
+Tabela `detections` com colunas: `id`, `moto_id`, `x`, `y`, `quadrant`, `status`, `timestamp`
 
-# Grid de quadrantes
-GRID_ROWS, GRID_COLS = 5, 5
-
-# Número de motos
-NUM_MOTOS = 4
-
-# Cores das motos (BGR)
-cores = [(0,0,255), (0,255,0), (255,0,0), (0,255,255)]
-```
-
-### **Velocidades e Posições**
-```python
-# Posições iniciais
-xs = [100, 700, 400, 200]
-ys = [100, 500, 300, 400]
-
-# Velocidades iniciais
-vxs = [3, -2, 4, -3]
-vys = [2, -3, -2, 3]
-```
-
-## 📊 Estrutura do Banco de Dados
-
-### **Tabela `detections`**
-```sql
-CREATE TABLE detections (
-    id NUMBER PRIMARY KEY,           -- ID auto-incremento
-    moto_id NUMBER,                  -- ID da moto (1-4)
-    x NUMBER,                        -- Posição X
-    y NUMBER,                        -- Posição Y
-    quadrant VARCHAR2(10),           -- Quadrante (A1, B2, etc.)
-    timestamp TIMESTAMP              -- Data/hora da detecção
-);
-```
-
-### **Consultas Úteis**
-```sql
--- Últimas 10 posições
-SELECT * FROM (
-    SELECT * FROM detections 
-    ORDER BY timestamp DESC
-) WHERE ROWNUM <= 10;
-
--- Contagem por quadrante
-SELECT quadrant, COUNT(*) as total
-FROM detections 
-GROUP BY quadrant 
-ORDER BY total DESC;
-
--- Rota de uma moto específica
-SELECT * FROM detections 
-WHERE moto_id = 1 
-ORDER BY timestamp DESC;
-```
+Criada automaticamente na primeira execução.
 
 ## 🔧 Troubleshooting
 
-### **Problemas Comuns**
+- **Erro Oracle**: Verifique credenciais em `oracle_config.py`
+- **Módulo não encontrado**: `pip install -r requirements.txt`
+- **Porta em uso**: Altere `PORT` no código ou variável de ambiente
 
-| Erro | Solução |
-|------|---------|
-| `DPI-1047: Cannot locate Oracle Client` | Use modo thin (automático) |
-| `ORA-01017: invalid username/password` | Verifique credenciais no `oracle_config.py` |
-| `ORA-12541: TNS:no listener` | Verifique se Oracle está rodando |
-| `ModuleNotFoundError: No module named 'cv2'` | Execute `pip install opencv-python` |
+## 🌐 Deploy no Azure
 
-### **Modos de Operação**
+Siga o guia rápido: [DEPLOY.md](DEPLOY.md)
 
-#### **Modo Thick (Recomendado)**
-- ✅ Melhor performance
-- ✅ Recursos avançados do Oracle
-- ❌ Requer Oracle Client instalado
+## 📊 API
 
-#### **Modo Thin (Fallback)**
-- ✅ Instalação mais simples
-- ✅ Funciona sem Oracle Client
-- ❌ Performance menor
+Endpoints: `/`, `/health`, `/latest`, `/stats`, `/moto/<id>`, `/status`, `/status/<id>`, `/alerts`
 
-## 📈 Funcionalidades Avançadas
-
-### **Dashboard Interativo**
-- Gráficos de dispersão das posições
-- Análise temporal dos movimentos
-- Filtros por moto e quadrante
-- Exportação de dados
-
-### **API REST**
-```bash
-# Últimas detecções
-GET /latest
-
-# Estatísticas gerais
-GET /stats
-
-# Dados por moto
-GET /moto/{id}
-```
-
-### **Análise de Dados**
-- Padrões de movimento por quadrante
-- Velocidade média por moto
-- Tempo de permanência em cada área
-- Detecção de anomalias
+Status por quadrante: Colunas 1-2 = `em_uso`, 3 = `no_patio`, 4 = `manutencao`, 5 = `reservada`
 
 ---

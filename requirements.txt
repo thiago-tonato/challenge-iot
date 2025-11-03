@@ -1,0 +1,19 @@
+# Dependências do Sistema de Rastreamento de Motos IoT - Mottu
+
+# Framework Web e API
+flask>=2.3.0
+flask-cors>=4.0.0
+
+# Banco de Dados
+oracledb>=2.0.0
+
+# Processamento de Imagem e Visualização
+opencv-python>=4.8.0
+numpy>=1.24.0
+
+# Análise de Dados
+pandas>=2.0.0
+plotly>=5.17.0
+
+# Utilitários (geralmente já incluídos no Python, mas listados para clareza)
+# datetime, threading, string são built-in do Python
