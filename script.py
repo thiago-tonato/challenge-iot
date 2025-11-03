@@ -508,6 +508,28 @@ vys = [2, -3, -2, 3]
 
 
 def run_simulation():
+    """Executa simulação de rastreamento (modo headless para containers)"""
+    import time
+    
+    # Detecta se há display disponível (para modo gráfico vs headless)
+    # Em containers Azure, geralmente não há display disponível
+    has_display = False
+    if os.environ.get('DISPLAY'):
+        try:
+            # Tenta detectar se cv2.imshow() funcionaria
+            test_frame = np.zeros((100, 100, 3), dtype=np.uint8)
+            cv2.namedWindow("test", cv2.WINDOW_NORMAL)
+            cv2.imshow("test", test_frame)
+            cv2.waitKey(1)
+            cv2.destroyWindow("test")
+            has_display = True
+        except Exception:
+            has_display = False
+    
+    if not has_display:
+        print("Modo headless detectado - simulação rodando sem interface gráfica")
+    
+    frame_count = 0
     while True:
         frame = np.zeros((HEIGHT, WIDTH, 3), dtype=np.uint8)
 
@@ -552,26 +574,37 @@ def run_simulation():
             }
             status_color = status_colors.get(status, (255, 255, 255))
 
-            # Exibe informação na tela
-            cv2.putText(
-                frame,
-                f"Moto {i+1}: {quad} - {status.upper()}",
-                (10, 30 + i * 30),
-                cv2.FONT_HERSHEY_SIMPLEX,
-                0.7,
-                status_color,
-                2,
-            )
+            # Exibe informação na tela (se houver display)
+            if has_display:
+                cv2.putText(
+                    frame,
+                    f"Moto {i+1}: {quad} - {status.upper()}",
+                    (10, 30 + i * 30),
+                    cv2.FONT_HERSHEY_SIMPLEX,
+                    0.7,
+                    status_color,
+                    2,
+                )
 
             # Salva no banco com status
             save_detection(i + 1, xs[i], ys[i], quad)
 
-        cv2.imshow("Rastreamento das Motos - Oracle", frame)
-        key = cv2.waitKey(30)
-        if key == 27:
-            break  # ESC para sair
+        # Apenas mostra janela se houver display disponível
+        if has_display:
+            cv2.imshow("Rastreamento das Motos - Oracle", frame)
+            key = cv2.waitKey(30) & 0xFF
+            if key == 27:  # ESC para sair
+                break
+        else:
+            # Modo headless: apenas espera um pouco e continua
+            time.sleep(0.03)  # ~30ms equivalente ao waitKey(30)
+            frame_count += 1
+            # Log a cada 100 frames para não poluir logs
+            if frame_count % 100 == 0:
+                print(f"Simulação rodando... {frame_count} frames processados")
 
-    cv2.destroyAllWindows()
+    if has_display:
+        cv2.destroyAllWindows()
 
 
 # ---------------- DASHBOARD ----------------
@@ -781,9 +814,17 @@ if __name__ == "__main__":
         run_simulation()
     except KeyboardInterrupt:
         print("\n⏹️  Simulação interrompida pelo usuário")
+    except Exception as e:
+        print(f"\n❌ Erro na simulação: {e}")
+        import traceback
+        traceback.print_exc()
     finally:
-        cv2.destroyAllWindows()
-        print("🔄 Exibindo dashboard...")
-        # Depois de fechar a janela, exibir dashboard:
-        plot_dashboard()
+        print("🔄 Finalizando sistema...")
+        # Não tenta exibir dashboard em modo headless (containers)
+        try:
+            if os.environ.get('DISPLAY'):
+                print("📊 Exibindo dashboard...")
+                plot_dashboard()
+        except Exception as e:
+            print(f"⚠️  Dashboard não disponível (modo headless): {e}")
         print("✅ Sistema finalizado")
