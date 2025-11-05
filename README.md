@@ -21,8 +21,9 @@ Este projeto implementa uma simulação avançada de rastreamento de motos em um
 - **Histórico completo** de rastreamento
 
 ### 📊 **Análise e Visualização**
-- **Dashboard Plotly** interativo
-- **API Flask REST** completa (8 endpoints)
+- **Dashboard web** em `/dashboard` (funciona no navegador/App Service)
+- **Dashboard Plotly** local (abre janela quando há display)
+- **API Flask REST** completa (endpoints principais)
 - **Estatísticas em tempo real**
 - **Sistema de status** baseado em quadrantes
 - **Alertas em tempo real**
@@ -74,6 +75,9 @@ challenge-iot/
 python script.py
 ```
 
+- A API inicia em background e o dashboard web fica disponível em `http://localhost:<PORT>/dashboard` (por padrão, `<PORT>=5000`).
+- Em ambientes sem display (ex.: Azure App Service), a janela gráfica não abre; use o dashboard web.
+
 ### **Opção 2: Teste de Conexão**
 ```bash
 # Verificar conectividade Oracle
@@ -104,12 +108,15 @@ Criada automaticamente na primeira execução.
 
 ## 🌐 Deploy no Azure
 
-Siga o guia rápido: [DEPLOY.md](DEPLOY.md)
+Siga o guia rápido para Web App (App Service): [DEPLOY.md](DEPLOY.md)
 
 ## 📊 API
 
-Endpoints: `/`, `/health`, `/latest`, `/stats`, `/moto/<id>`, `/status`, `/status/<id>`, `/alerts`
+Endpoints: `/`, `/dashboard`, `/health`, `/latest`, `/stats`, `/moto/<id>`, `/status`, `/status/<id>`, `/alerts`
 
 Status por quadrante: Colunas 1-2 = `em_uso`, 3 = `no_patio`, 4 = `manutencao`, 5 = `reservada`
+
+### 🔎 Observações de Ambiente
+- Em servidores headless (ex.: Azure App Service), a aplicação entra em modo headless automaticamente: a API e a simulação rodam normalmente, mas janelas gráficas (OpenCV/Plotly) não são exibidas. Use o dashboard web em `/dashboard`.
 
 ---

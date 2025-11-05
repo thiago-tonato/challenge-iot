@@ -17,3 +17,6 @@ plotly>=5.17.0
 
 # Utilitários (geralmente já incluídos no Python, mas listados para clareza)
 # datetime, threading, string são built-in do Python
+ 
+# Servidor WSGI recomendado para Azure App Service
+gunicorn>=21.2.0

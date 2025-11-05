@@ -1,63 +1,105 @@
-# 🚀 Deploy no Azure - Guia Rápido
+# 🚀 Deploy no Azure App Service (Web App)
 
-## Deploy em 4 Passos
+Este guia publica a aplicação Python/Flask como Web App (código), sem containers.
 
-### 1. Login e Criar Recursos
+## Pré-requisitos
+
+- Azure CLI instalado e autenticado (`az login`)
+- Python 3.11 local e dependências instaladas (`pip install -r requirements.txt`)
+
+## Passo a passo
+
+### 1) Login e grupo de recursos
 
 ```bash
 az login
+az account set --subscription "<SUA_ASSINATURA>"
 az group create --name rg-motos-iot --location eastus
-az acr create --resource-group rg-motos-iot --name acrmotosiot --sku Basic --admin-enabled true
 ```
 
-### 2. Build e Push da Imagem
+### 2) Plano App Service Linux e Web App (Python 3.11)
 
 ```bash
-az acr build --registry acrmotosiot --image motos-iot:latest --file Dockerfile .
+az appservice plan create \
+  --name asp-motos-iot \
+  --resource-group rg-motos-iot \
+  --sku B1 \
+  --is-linux
+
+az webapp create \
+  --resource-group rg-motos-iot \
+  --plan asp-motos-iot \
+  --name motos-iot-mottu \
+  --runtime "PYTHON|3.11"
 ```
 
-### 3. Criar Container
+### 3) Configurar variáveis de ambiente e comando de inicialização
+
+A aplicação expõe uma API Flask em `script.py` (objeto `app`) e roda a simulação em thread. Para produção no App Service, use Gunicorn:
 
 ```bash
-ACR_PASS=$(az acr credential show --name acrmotosiot --query passwords[0].value -o tsv)
-
-az container create \
+az webapp config appsettings set \
   --resource-group rg-motos-iot \
   --name motos-iot-mottu \
-  --image acrmotosiot.azurecr.io/motos-iot:latest \
-  --registry-login-server acrmotosiot.azurecr.io \
-  --registry-username acrmotosiot \
-  --registry-password $ACR_PASS \
-  --dns-name-label motos-iot-mottu \
-  --ports 8000 \
-  --environment-variables \
-    PORT=8000 \
-    ORACLE_USER=rm99404 \
-    ORACLE_PASSWORD=220205 \
-    ORACLE_HOST=oracle.fiap.com.br \
-    ORACLE_PORT=1521 \
-    ORACLE_SERVICE=ORCL \
-  --cpu 2 --memory 4
+  --settings \
+    ORACLE_USER="<usuario>" \
+    ORACLE_PASSWORD="<senha>" \
+    ORACLE_HOST="oracle.fiap.com.br" \
+    ORACLE_PORT="1521" \
+    ORACLE_SERVICE="ORCL"
+
+# Defina o comando de inicialização para Gunicorn
+az webapp config set \
+  --resource-group rg-motos-iot \
+  --name motos-iot-mottu \
+  --startup-file "gunicorn script:app --bind=0.0.0.0:$PORT --workers 2 --threads 4 --timeout 120"
 ```
 
-### 4. Obter URL
+Observações:
+- O App Service define a variável `$PORT` automaticamente.
+- `gunicorn script:app` referencia o objeto Flask `app` declarado em `script.py`.
+
+### 4) Publicar código (Zip Deploy)
+
+Na raiz do projeto (`challenge-iot/`):
 
 ```bash
-az container show --resource-group rg-motos-iot --name motos-iot-mottu --query ipAddress.fqdn -o tsv
+zip -r app.zip . -x "*.git*" "*__pycache__*"
+az webapp deploy \
+  --resource-group rg-motos-iot \
+  --name motos-iot-mottu \
+  --src-path app.zip \
+  --type zip
 ```
 
-Acesse: `http://<URL_RETORNADA>:8000`
-
-## Comandos Úteis
+### 5) Verificar URL e logs
 
 ```bash
-# Ver logs
-az container logs --resource-group rg-motos-iot --name motos-iot-mottu --follow
+az webapp show \
+  --resource-group rg-motos-iot \
+  --name motos-iot-mottu \
+  --query defaultHostName -o tsv
 
-# Reiniciar
-az container restart --resource-group rg-motos-iot --name motos-iot-mottu
+az webapp log tail \
+  --resource-group rg-motos-iot \
+  --name motos-iot-mottu
+```
 
-# Deletar
-az container delete --resource-group rg-motos-iot --name motos-iot-mottu
+Abra: `https://motos-iot-mottu.azurewebsites.net/health`
+
+## Dicas
+
+- Caso prefira comando único, use `az webapp up` na raiz do projeto:
+
+```bash
+az webapp up -n motos-iot-mottu -g rg-motos-iot -l eastus --sku B1 --runtime "PYTHON:3.11"
+```
+
+- Se precisar usar o servidor Flask nativo (não recomendado), defina o startup para `python script.py`. Prefira Gunicorn.
+
+## Limpeza
+
+```bash
+az group delete --name rg-motos-iot --yes --no-wait
 ```
 

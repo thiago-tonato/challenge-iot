@@ -510,11 +510,11 @@ vys = [2, -3, -2, 3]
 def run_simulation():
     """Executa simulação de rastreamento (modo headless para containers)"""
     import time
-    
+
     # Detecta se há display disponível (para modo gráfico vs headless)
     # Em containers Azure, geralmente não há display disponível
     has_display = False
-    if os.environ.get('DISPLAY'):
+    if os.environ.get("DISPLAY"):
         try:
             # Tenta detectar se cv2.imshow() funcionaria
             test_frame = np.zeros((100, 100, 3), dtype=np.uint8)
@@ -525,10 +525,10 @@ def run_simulation():
             has_display = True
         except Exception:
             has_display = False
-    
+
     if not has_display:
         print("Modo headless detectado - simulação rodando sem interface gráfica")
-    
+
     frame_count = 0
     while True:
         frame = np.zeros((HEIGHT, WIDTH, 3), dtype=np.uint8)
@@ -777,6 +777,162 @@ def alerts():
         return jsonify({"error": str(e)}), 500
 
 
+@app.route("/dashboard")
+def dashboard():
+    """Dashboard web desenhado no navegador (funciona no App Service)."""
+    return (
+        """
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Motos IoT - Dashboard</title>
+  <style>
+    :root { --w: 800px; --h: 600px; }
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; margin: 0; background: #0b1020; color: #e6e9f0; }
+    header { padding: 12px 16px; border-bottom: 1px solid #2a3350; display: flex; align-items: center; gap: 12px; }
+    header h1 { font-size: 16px; font-weight: 600; margin: 0; }
+    .container { display: grid; grid-template-columns: var(--w) 1fr; gap: 20px; padding: 16px; }
+    .card { background: #0f162b; border: 1px solid #2a3350; border-radius: 10px; padding: 12px; }
+    .canvas-wrap { position: relative; width: var(--w); height: var(--h); }
+    canvas { width: var(--w); height: var(--h); background: #0a0f1f; border-radius: 8px; display: block; }
+    .legend { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 8px; font-size: 12px; }
+    .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; margin-right: 6px; vertical-align: middle; }
+    .kpi { display: grid; grid-template-columns: repeat(2, minmax(120px, 1fr)); gap: 10px; }
+    .kpi-item { background: #0b1326; border: 1px solid #223055; border-radius: 8px; padding: 10px; }
+    .kpi-item .label { color: #9fb0d6; font-size: 11px; }
+    .kpi-item .value { font-size: 18px; font-weight: 600; margin-top: 4px; }
+    a { color: #8ab4ff; text-decoration: none; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>🏍️ Motos IoT - Dashboard</h1>
+    <div style="opacity:.8">API: <a href="/" target="_blank">/</a> · Health: <a href="/health" target="_blank">/health</a></div>
+  </header>
+
+  <div class="container">
+    <div class="card">
+      <div class="canvas-wrap">
+        <canvas id="board" width="800" height="600"></canvas>
+      </div>
+      <div class="legend">
+        <span><span class="dot" style="background:#ff5555"></span>Moto 1</span>
+        <span><span class="dot" style="background:#22cc88"></span>Moto 2</span>
+        <span><span class="dot" style="background:#4aa3ff"></span>Moto 3</span>
+        <span><span class="dot" style="background:#00e5e5"></span>Moto 4</span>
+        <span>·</span>
+        <span><span class="dot" style="background:#22cc88"></span>em_uso</span>
+        <span><span class="dot" style="background:#ffd166"></span>no_patio</span>
+        <span><span class="dot" style="background:#ff8c42"></span>manutencao</span>
+        <span><span class="dot" style="background:#a78bfa"></span>reservada</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="kpi">
+        <div class="kpi-item">
+          <div class="label">Total de detecções</div>
+          <div class="value" id="kpi-total">-</div>
+        </div>
+        <div class="kpi-item">
+          <div class="label">Motos únicas</div>
+          <div class="value" id="kpi-uniq">-</div>
+        </div>
+        <div class="kpi-item">
+          <div class="label">Última atualização</div>
+          <div class="value" id="kpi-last">-</div>
+        </div>
+        <div class="kpi-item">
+          <div class="label">Status (1→4)</div>
+          <div class="value" id="kpi-status">-</div>
+        </div>
+      </div>
+      <div style="margin-top:10px;color:#9fb0d6;font-size:12px">Atualiza a cada ~500 ms. Dados via <code>/status</code> e <code>/stats</code>.</div>
+    </div>
+  </div>
+
+  <script>
+    const WIDTH = 800, HEIGHT = 600, ROWS = 5, COLS = 5;
+    const QUAD_W = Math.floor(WIDTH / COLS), QUAD_H = Math.floor(HEIGHT / ROWS);
+    const motoColors = ["#ff5555", "#22cc88", "#4aa3ff", "#00e5e5"]; // 1..4
+    const statusColors = { em_uso: "#22cc88", no_patio: "#ffd166", manutencao: "#ff8c42", reservada: "#a78bfa", desconhecido: "#e6e9f0" };
+
+    const canvas = document.getElementById('board');
+    const ctx = canvas.getContext('2d');
+
+    function drawGrid() {
+      ctx.clearRect(0,0,WIDTH,HEIGHT);
+      ctx.fillStyle = "#0a0f1f"; ctx.fillRect(0,0,WIDTH,HEIGHT);
+      ctx.strokeStyle = "#2a3350"; ctx.lineWidth = 1;
+      for (let r=1; r<ROWS; r++) { ctx.beginPath(); ctx.moveTo(0, r*QUAD_H); ctx.lineTo(WIDTH, r*QUAD_H); ctx.stroke(); }
+      for (let c=1; c<COLS; c++) { ctx.beginPath(); ctx.moveTo(c*QUAD_W, 0); ctx.lineTo(c*QUAD_W, HEIGHT); ctx.stroke(); }
+      // labels A1..E5
+      ctx.fillStyle = "#7085b6"; ctx.font = "12px system-ui";
+      for (let r=0; r<ROWS; r++) {
+        for (let c=0; c<COLS; c++) {
+          const label = String.fromCharCode(65 + r) + (c+1);
+          ctx.fillText(label, c*QUAD_W + 6, r*QUAD_H + 16);
+        }
+      }
+    }
+
+    function drawMotos(motos) {
+      motos.forEach((m, idx) => {
+        const x = (m.position && m.position.x != null) ? m.position.x : 0;
+        const y = (m.position && m.position.y != null) ? m.position.y : 0;
+        const status = m.status || 'desconhecido';
+        // trail shadow
+        ctx.beginPath(); ctx.arc(x, y, 16, 0, Math.PI*2); ctx.fillStyle = "rgba(255,255,255,0.05)"; ctx.fill();
+        // main dot
+        ctx.beginPath(); ctx.arc(x, y, 10, 0, Math.PI*2); ctx.fillStyle = motoColors[(m.moto_id-1)%motoColors.length]; ctx.fill();
+        // status ring
+        ctx.beginPath(); ctx.arc(x, y, 12, 0, Math.PI*2); ctx.strokeStyle = statusColors[status] || "#e6e9f0"; ctx.lineWidth = 3; ctx.stroke();
+        // label
+        ctx.fillStyle = "#e6e9f0"; ctx.font = "12px system-ui";
+        ctx.fillText(`Moto ${m.moto_id} · ${status}`, x + 14, y - 12);
+      });
+    }
+
+    async function refresh() {
+      try {
+        const [statusRes, statsRes] = await Promise.all([
+          fetch('/status', { cache: 'no-store' }),
+          fetch('/stats', { cache: 'no-store' })
+        ]);
+        const statusJson = await statusRes.json();
+        const statsJson = await statsRes.json();
+
+        drawGrid();
+        if (statusJson && Array.isArray(statusJson.motos)) {
+          drawMotos(statusJson.motos);
+          const ordered = statusJson.motos.sort((a,b)=>a.moto_id-b.moto_id).map(m=>m.status || '—');
+          document.getElementById('kpi-status').textContent = ordered.join(' | ');
+        }
+
+        document.getElementById('kpi-total').textContent = (statsJson.total_detections ?? 0).toString();
+        document.getElementById('kpi-uniq').textContent = (statsJson.unique_motos ?? 0).toString();
+        document.getElementById('kpi-last').textContent = statsJson.last_detection ? new Date(statsJson.last_detection).toLocaleTimeString() : '—';
+      } catch (e) {
+        // simple error indicator
+        ctx.fillStyle = "#ff5555"; ctx.font = "14px system-ui";
+        ctx.fillText("Erro ao carregar dados", 10, HEIGHT - 10);
+      }
+    }
+
+    drawGrid();
+    refresh();
+    setInterval(refresh, 600); // ~600ms
+  </script>
+</body>
+</html>
+        """,
+        200,
+        {"Content-Type": "text/html; charset=utf-8"},
+    )
+
+
 def run_api():
     """Executa a API Flask em thread separada"""
     # Porta do Azure ou padrão 5000
@@ -817,12 +973,13 @@ if __name__ == "__main__":
     except Exception as e:
         print(f"\n❌ Erro na simulação: {e}")
         import traceback
+
         traceback.print_exc()
     finally:
         print("🔄 Finalizando sistema...")
         # Não tenta exibir dashboard em modo headless (containers)
         try:
-            if os.environ.get('DISPLAY'):
+            if os.environ.get("DISPLAY"):
                 print("📊 Exibindo dashboard...")
                 plot_dashboard()
         except Exception as e:
