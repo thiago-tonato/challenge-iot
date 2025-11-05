@@ -7,8 +7,8 @@ flask-cors>=4.0.0
 # Banco de Dados
 oracledb>=2.0.0
 
-# Processamento de Imagem e Visualização
-opencv-python>=4.8.0
+# Processamento de Imagem e Visualização (headless para servidores/App Service)
+opencv-python-headless>=4.8.0
 numpy>=1.24.0
 
 # Análise de Dados

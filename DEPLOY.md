@@ -72,6 +72,22 @@ az webapp deploy \
   --type zip
 ```
 
+Se as dependências Python não forem instaladas (erros ModuleNotFoundError), habilite o build durante o deploy:
+
+```bash
+az webapp config appsettings set \
+  --resource-group rg-motos-iot \
+  --name motos-iot-mottu \
+  --settings SCM_DO_BUILD_DURING_DEPLOYMENT=true
+
+# Refaça o deploy do zip após isso
+az webapp deploy \
+  --resource-group rg-motos-iot \
+  --name motos-iot-mottu \
+  --src-path app.zip \
+  --type zip
+```
+
 ### 5) Verificar URL e logs
 
 ```bash
@@ -96,6 +112,8 @@ az webapp up -n motos-iot-mottu -g rg-motos-iot -l eastus --sku B1 --runtime "PY
 ```
 
 - Se precisar usar o servidor Flask nativo (não recomendado), defina o startup para `python script.py`. Prefira Gunicorn.
+
+- OpenCV em servidores: use `opencv-python-headless` (já configurado no `requirements.txt`) para evitar dependências de GUI/`libGL`.
 
 ## Limpeza
 
