@@ -950,28 +950,54 @@ def run_api():
     app.run(host="0.0.0.0", port=port, debug=False, use_reloader=False)
 
 
+# ---------------- INICIALIZAÇÃO AUTOMÁTICA ----------------
+# Inicia a simulação em thread daemon quando o módulo é importado
+# Isso permite que funcione tanto com Gunicorn quanto com execução direta
+_simulation_thread = None
+_simulation_started = False
+
+
+def _start_simulation_background():
+    """Inicia a simulação em uma thread daemon (para Gunicorn/App Service)"""
+    global _simulation_thread, _simulation_started
+    if _simulation_started:
+        return
+
+    _simulation_started = True
+    print("🚀 Iniciando simulação de rastreamento em background...")
+    _simulation_thread = threading.Thread(target=run_simulation, daemon=True)
+    _simulation_thread.start()
+    print("✅ Simulação iniciada em thread daemon")
+
+
+# Inicia automaticamente quando o módulo é importado
+_start_simulation_background()
+
+
 # ---------------- MAIN ----------------
 if __name__ == "__main__":
     print("=" * 60)
     print("🏍️  SISTEMA DE RASTREAMENTO DE MOTOS - MOTTU")
     print("=" * 60)
 
-    # Inicia API em thread separada
-    api_thread = threading.Thread(target=run_api, daemon=True)
-    api_thread.start()
-    print("✅ API iniciada em background")
+    # Simulação já está rodando em thread daemon (iniciada automaticamente)
+    # Aqui apenas iniciamos a API Flask para execução direta
+    print("✅ Simulação já está rodando em background")
     print()
 
-    print("Iniciando simulação com Oracle Database...")
-    print("Pressione ESC para sair")
+    print("Iniciando API Flask...")
+    print("Pressione Ctrl+C para sair")
     print("-" * 60)
 
     try:
-        run_simulation()
+        # Executa API Flask diretamente (não em thread quando executado diretamente)
+        port = int(os.environ.get("PORT", 5000))
+        print(f"🌐 Iniciando API Flask na porta {port}...")
+        app.run(host="0.0.0.0", port=port, debug=False, use_reloader=False)
     except KeyboardInterrupt:
-        print("\n⏹️  Simulação interrompida pelo usuário")
+        print("\n⏹️  Sistema interrompido pelo usuário")
     except Exception as e:
-        print(f"\n❌ Erro na simulação: {e}")
+        print(f"\n❌ Erro na API: {e}")
         import traceback
 
         traceback.print_exc()

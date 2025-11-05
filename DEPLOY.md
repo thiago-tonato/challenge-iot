@@ -63,8 +63,33 @@ Observações:
 
 Na raiz do projeto (`challenge-iot/`):
 
+**PowerShell:**
+```powershell
+# Remove zip anterior se existir
+Remove-Item app.zip -ErrorAction SilentlyContinue
+
+# Cria zip excluindo .git, __pycache__, venv, etc.
+Get-ChildItem -Recurse -File |
+  Where-Object {
+    $_.FullName -notmatch '\\.git\\' -and
+    $_.FullName -notmatch '\\__pycache__\\' -and
+    $_.FullName -notmatch '\\.venv\\' -and
+    $_.FullName -notmatch '\\venv\\' -and
+    $_.Name -ne 'app.zip'
+  } |
+  Compress-Archive -DestinationPath app.zip -Force
+
+# Deploy
+az webapp deploy `
+  --resource-group rg-motos-iot `
+  --name motos-iot-mottu `
+  --src-path app.zip `
+  --type zip
+```
+
+**Linux/Mac (bash):**
 ```bash
-zip -r app.zip . -x "*.git*" "*__pycache__*"
+zip -r app.zip . -x "*.git*" "*__pycache__*" "*.venv*" "*venv*" "*app.zip"
 az webapp deploy \
   --resource-group rg-motos-iot \
   --name motos-iot-mottu \
