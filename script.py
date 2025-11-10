@@ -933,10 +933,31 @@ def dashboard():
     )
 
 
+def _resolve_port(default=5000):
+    """Obtém porta da env var PORT; valida e aplica fallback."""
+    raw_value = os.environ.get("PORT")
+    if raw_value is None:
+        return default
+    raw_value = raw_value.strip()
+    if not raw_value:
+        print(f"⚠️ Variável de ambiente PORT vazia, usando porta padrão {default}")
+        return default
+    try:
+        port = int(raw_value)
+        if 1 <= port <= 65535:
+            return port
+        print(
+            f"⚠️ Porta fora do intervalo permitido (1-65535): '{raw_value}', usando {default}"
+        )
+    except ValueError:
+        print(f"⚠️ Valor de PORT inválido: '{raw_value}', usando porta padrão {default}")
+    return default
+
+
 def run_api():
     """Executa a API Flask em thread separada"""
     # Porta do Azure ou padrão 5000
-    port = int(os.environ.get("PORT", 5000))
+    port = _resolve_port()
     print(f"🌐 Iniciando API Flask na porta {port}...")
     print("📡 Endpoints disponíveis:")
     print(f"   GET http://localhost:{port}/")
@@ -991,7 +1012,7 @@ if __name__ == "__main__":
 
     try:
         # Executa API Flask diretamente (não em thread quando executado diretamente)
-        port = int(os.environ.get("PORT", 5000))
+        port = _resolve_port()
         print(f"🌐 Iniciando API Flask na porta {port}...")
         app.run(host="0.0.0.0", port=port, debug=False, use_reloader=False)
     except KeyboardInterrupt:
